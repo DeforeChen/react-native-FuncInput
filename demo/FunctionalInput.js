@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 
 import PropTypes from 'prop-types';
+import {imageUri} from './imageManager';
+import {cmpColor} from './colorManager';
 // 自定义
 // import SafeAreaForIphoneX from "../../utils/SafeAreaForIphoneX";
 
@@ -39,13 +41,14 @@ class InnerFunctionalInput extends PureComponent {
         this.needToListenKBFrameChange = true; //是否需要监听键盘宽高变化 —— 键盘消失时常常也会调用 frame 变化的回调
         this.needToFoldAll = Platform.select({ios: false, android: true}); // 是否需要折叠底部所有的区域，包括键盘占用区和功能区
         this.needToFoldAllForIOS = false; // ios 下，当 focus 输入框，第三方输入法含有"🔽按钮隐藏keyboard 时使用"
-        this.functionAreaHeight = this.props.wrappedFunctionCmp.props.style.height;
+        this.functionAreaHeight = this.props.funcAreaHeight;
     }
 
     static propTypes = {
         outsideScrollCallBack: PropTypes.func.isRequired,
         resetWholePage: PropTypes.func.isRequired,
         wrappedFunctionCmp: PropTypes.object.isRequired, // 用于包裹的功能区域的内容
+        funcAreaHeight: PropTypes.number.isRequired, //必须告知功能区域的高度
         sendReplyCallback: PropTypes.func.isRequired, // 用于发送按钮按下
     };
 
@@ -171,6 +174,17 @@ class InnerFunctionalInput extends PureComponent {
         this.setState({foldStatus: foldStatus.fold});
     };
 
+    _onTextInputChangeLine = (e) => {
+        // let funcAreaHeight = e.nativeEvent.layout.height;
+        this.needToFoldAllForIOS = true;
+        this.needToListenKBFrameChange = true;
+        this.needToFoldAll = Platform.select({ios: false, android: true});
+        if (Platform.OS === 'android') {
+            // 安卓中，当 focus 输入框的时候，不会进入到 keyboardChangeFrame,所以这里要手动做一下
+            this.setState({foldStatus: foldStatus.fold});
+        }
+    };
+
     /*FunctionalInput Inner Components*/
     _functionalInput_divideLine = () => {
         return (<View style={styles.divideLine}/>);
@@ -196,10 +210,12 @@ class InnerFunctionalInput extends PureComponent {
                           this._onAddAttachment();
                       }}
                 >
-                    <Image style={{width: addAttachBtnSize, height: addAttachBtnSize, backgroundColor: 'red'}}/>
+                    <Image style={{width: addAttachBtnSize, height: addAttachBtnSize}}
+                           source={imageUri.callFuncAreaButton}/>
                 </View>
                 {InputOutlineForAndroid}
-                <TextInput style={textInputStyle} underlineColorAndroid={'transparent'} multiline={false}
+                <TextInput style={textInputStyle} underlineColorAndroid={'transparent'} multiline={true}
+                           onContentSizeChange={this._onTextInputChangeLine}
                            onFocus={() => {
                                this.needToFoldAllForIOS = true;
                                this.needToListenKBFrameChange = true;
@@ -265,6 +281,7 @@ export class FunctionalInput extends PureComponent {
     static propTypes = {
         wrappedContentCmp: PropTypes.object.isRequired, // 用于包裹的显示区域的组件内容
         wrappedFunctionCmp: PropTypes.object.isRequired, // 用于包裹的功能区域的内容
+        funcAreaHeight: PropTypes.number.isRequired, //必须告知功能区域的高度
         sendReplyCallback: PropTypes.func.isRequired, // 用于发送按钮按下
     };
 
@@ -314,6 +331,7 @@ export class FunctionalInput extends PureComponent {
                 {this._displayComponent()}
                 <InnerFunctionalInput ref={(input => this._input = input)} resetWholePage={this.resetPage}
                                       wrappedFunctionCmp={this.props.wrappedFunctionCmp}
+                                      funcAreaHeight={this.props.funcAreaHeight}
                                       sendReplyCallback={this.props.sendReplyCallback}
                                       outsideScrollCallBack={(offsetY) => {
                                           this._scrollView.scrollTo({y: offsetY, animated: true});
@@ -331,7 +349,8 @@ const sendBtnWidth = 58, sendBtnHeight = 32, sendBtnMarginLeft = 8, sendBtnMargi
 const sendBtnOccupyWidth = sendBtnWidth + sendBtnMarginLeft + sendBtnMarginRight;
 const cornerRadius = 4;
 const inputFrameForIOS = {
-    borderWidth: 1, borderColor: 'gray', borderRadius: cornerRadius, backgroundColor: 'white',
+    borderWidth: 1, borderColor: cmpColor.textInputBorder, borderRadius: cornerRadius,
+    backgroundColor: cmpColor.textInputBackground,
     marginRight: sendBtnOccupyWidth,
     height: sendBtnHeight, width: width - sendBtnOccupyWidth - addAttachOccupyWidth,
 };
@@ -339,10 +358,10 @@ const styles = StyleSheet.create({
     container: {},
     // FunctionalInput
     divideLine: {
-        width: width, height: divideLineHeight, backgroundColor: '#777777'
+        width: width, height: divideLineHeight, backgroundColor: cmpColor.divideLine,
     },
     inputArea: {
-        flexDirection: 'row', alignItems: 'center', backgroundColor: '#777777',
+        flexDirection: 'row', alignItems: 'center', backgroundColor: cmpColor.cmpBackground,
         width: width, height: functionalInputAreaFoldHeight - divideLineHeight,
     },
     inputFrameForIOS: inputFrameForIOS,
@@ -356,10 +375,10 @@ const styles = StyleSheet.create({
     sendBtn: {
         position: 'absolute',
         width: sendBtnWidth, height: sendBtnHeight, right: sendBtnMarginRight,
-        borderWidth: 1, borderColor: '#888888', borderRadius: cornerRadius,
-        backgroundColor: 'lightblue', justifyContent: 'center', alignItems: 'center'
+        borderWidth: 1, borderColor: cmpColor.sendButtonBorder, borderRadius: cornerRadius,
+        backgroundColor: cmpColor.sendButtonBackground, justifyContent: 'center', alignItems: 'center'
     },
     sendBtnText: {
-        color: '#777777', fontSize: 18,
+        color: cmpColor.sendButtonText, fontSize: 18,
     },
 });

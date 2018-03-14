@@ -19,7 +19,7 @@ const {width, height} = Dimensions.get('window');
 export default class App extends Component<{}> {
     _contentComponent = () => {
         return (
-            <View style={{width: width, height: 600}}>
+            <View style={styles.ContentArea}>
                 <Text>
                     Test view for Content area
                 </Text>
@@ -29,7 +29,7 @@ export default class App extends Component<{}> {
 
     _functionArea = () => {
         return (
-            <View style={{width: width, height: 240}}>
+            <View style={styles.FunctionalArea}>
                 <Text>
                     Test view for Functional Area
                 </Text>
@@ -39,7 +39,7 @@ export default class App extends Component<{}> {
 
     render() {
         return (
-            <FunctionalInput wrappedContentCmp={this._contentComponent()}
+            <FunctionalInput wrappedContentCmp={this._contentComponent()} funcAreaHeight={240}
                              wrappedFunctionCmp={this._functionArea()}
                              sendReplyCallback={() => {
                                  console.warn('send button pressed');
@@ -56,14 +56,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F5FCFF',
     },
-    welcome: {
-        fontSize: 20,
-        textAlign: 'center',
-        margin: 10,
+    ContentArea: {
+        width: width, height: 400, backgroundColor: 'yellow',
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
     },
-    instructions: {
-        textAlign: 'center',
-        color: '#333333',
-        marginBottom: 5,
+    FunctionalArea: {
+        width: width, height: 240,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
     },
 });
