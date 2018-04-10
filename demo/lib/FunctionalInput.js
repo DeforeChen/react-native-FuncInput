@@ -43,6 +43,8 @@ class InnerFunctionalInput extends PureComponent {
         this.needToFoldAll = Platform.select({ios: false, android: true}); // 是否需要折叠底部所有的区域，包括键盘占用区和功能区
         this.needToFoldAllForIOS = false; // ios 下，当 focus 输入框，第三方输入法含有"🔽按钮隐藏keyboard 时使用"
         this.functionAreaHeight = this.props.funcAreaHeight;
+
+        this.replyTextContent = '';
     }
 
     static propTypes = {
