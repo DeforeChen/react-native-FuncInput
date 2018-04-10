@@ -6,7 +6,7 @@
 
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View, Dimensions} from 'react-native';
-import {FunctionalInput} from './FunctionalInput';
+import {FunctionalInput} from './lib/FunctionalInput';
 
 const instructions = Platform.select({
     ios: 'Press Cmd+R to reload,\n' +
@@ -40,7 +40,8 @@ export default class App extends Component<{}> {
     render() {
         return (
             <FunctionalInput wrappedContentCmp={this._contentComponent()} funcAreaHeight={240}
-                             wrappedFunctionCmp={this._functionArea()}
+                             wrappedFunctionCmp={this._functionArea()} navBarHidden={true}
+                             contentCmpContainsScrollView={false}
                              sendReplyCallback={() => {
                                  console.warn('send button pressed');
                              }}

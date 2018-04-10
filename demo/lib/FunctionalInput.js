@@ -9,10 +9,10 @@ import {
 } from 'react-native';
 
 import PropTypes from 'prop-types';
-import {imageUri} from './imageManager';
-import {cmpColor} from './colorManager';
+import {imageUri} from '../imageManager';
+import {cmpColor} from '../colorManager';
 // 自定义
-// import SafeAreaForIphoneX from "../../utils/SafeAreaForIphoneX";
+import SafeAreaForIphoneX from "../util/SafeAreaForIphoneX";
 
 export const functionalInputAreaFoldHeight = 44;
 const {width, height} = Dimensions.get('window');
@@ -38,6 +38,7 @@ class InnerFunctionalInput extends PureComponent {
         this.keyboardWillChangeFrameListener = null;
         this.keyboardhHeight = 0;
 
+        this.needToClearText = false;//该标志位是为了在输入框自动补全情况下做的
         this.needToListenKBFrameChange = true; //是否需要监听键盘宽高变化 —— 键盘消失时常常也会调用 frame 变化的回调
         this.needToFoldAll = Platform.select({ios: false, android: true}); // 是否需要折叠底部所有的区域，包括键盘占用区和功能区
         this.needToFoldAllForIOS = false; // ios 下，当 focus 输入框，第三方输入法含有"🔽按钮隐藏keyboard 时使用"
@@ -111,7 +112,7 @@ class InnerFunctionalInput extends PureComponent {
 
         let needRenderKeyboardArea = false;//true;
         if (event.endCoordinates.height !== this.keyboardhHeight) {
-            this.keyboardhHeight = event.endCoordinates.height;
+            this.keyboardhHeight = event.endCoordinates.height - SafeAreaForIphoneX.fetchSaveAreaHeight();
             needRenderKeyboardArea = true;
         }
 
@@ -174,16 +175,16 @@ class InnerFunctionalInput extends PureComponent {
         this.setState({foldStatus: foldStatus.fold});
     };
 
-    _onTextInputChangeLine = (e) => {
-        // let funcAreaHeight = e.nativeEvent.layout.height;
-        this.needToFoldAllForIOS = true;
-        this.needToListenKBFrameChange = true;
-        this.needToFoldAll = Platform.select({ios: false, android: true});
-        if (Platform.OS === 'android') {
-            // 安卓中，当 focus 输入框的时候，不会进入到 keyboardChangeFrame,所以这里要手动做一下
-            this.setState({foldStatus: foldStatus.fold});
-        }
-    };
+    // _onTextInputChangeLine = (e) => {
+    //     // let funcAreaHeight = e.nativeEvent.layout.height;
+    //     this.needToFoldAllForIOS = true;
+    //     this.needToListenKBFrameChange = true;
+    //     this.needToFoldAll = Platform.select({ios: false, android: true});
+    //     if (Platform.OS === 'android') {
+    //         // 安卓中，当 focus 输入框的时候，不会进入到 keyboardChangeFrame,所以这里要手动做一下
+    //         this.setState({foldStatus: foldStatus.fold});
+    //     }
+    // };
 
     /*FunctionalInput Inner Components*/
     _functionalInput_divideLine = () => {
@@ -214,9 +215,19 @@ class InnerFunctionalInput extends PureComponent {
                            source={imageUri.callFuncAreaButton}/>
                 </View>
                 {InputOutlineForAndroid}
-                <TextInput style={textInputStyle} underlineColorAndroid={'transparent'} multiline={true}
-                           onContentSizeChange={this._onTextInputChangeLine}
+                <TextInput style={textInputStyle} underlineColorAndroid={'transparent'} multiline={false}
+                           ref={(textInput => this._textInput = textInput)}
+                           onChangeText={text => {
+                               if (this.needToClearText) {
+                                   if (text.length > 0) {
+                                       this._textInput.clear();
+                                   }
+                               } else {
+                                   this.replyTextContent = text;
+                               }
+                           }}
                            onFocus={() => {
+                               this.needToClearText = false;
                                this.needToFoldAllForIOS = true;
                                this.needToListenKBFrameChange = true;
                                this.needToFoldAll = Platform.select({ios: false, android: true});
@@ -228,7 +239,12 @@ class InnerFunctionalInput extends PureComponent {
                 <View style={styles.sendBtn}
                       onTouchStart={() => {
                           this.props.resetWholePage();
-                          this.props.sendReplyCallback();
+                          this.props.sendReplyCallback(this.replyTextContent);
+                          if (this.replyTextContent.length > 0) {
+                              this._textInput.clear();
+                              this.replyTextContent = '';
+                              this.needToClearText = true;
+                          }
                       }}>
                     <Text style={styles.sendBtnText}>
                         Send
@@ -259,14 +275,13 @@ class InnerFunctionalInput extends PureComponent {
     };
 
     render() {
-        // <SafeAreaForIphoneX bgColor={NdColor.color23}/>
         return (
             <View style={styles.container}>
                 {this._functionalInput_divideLine()}
                 {this._functionalInput_inputArea()}
                 {this._functionalInput_keyboardOccupyArea()}
                 {this._functionalInput_functionArea()}
-                {/*<SafeAreaForIphoneX bgColor={NdColor.color23}/>*/}
+                <SafeAreaForIphoneX bgColor={cmpColor.textInputBackground}/>
             </View>
         );
     }
@@ -280,8 +295,9 @@ export class FunctionalInput extends PureComponent {
 
     static propTypes = {
         wrappedContentCmp: PropTypes.object.isRequired, // 用于包裹的显示区域的组件内容
+        contentCmpContainsScrollView: PropTypes.bool.isRequired,// 告知是否内容区域内包含 可滚动的组件
+        navBarHidden: PropTypes.bool.isRequired, // 告知是否有导航条
         wrappedFunctionCmp: PropTypes.object.isRequired, // 用于包裹的功能区域的内容
-        funcAreaHeight: PropTypes.number.isRequired, //必须告知功能区域的高度
         sendReplyCallback: PropTypes.func.isRequired, // 用于发送按钮按下
     };
 
@@ -299,17 +315,24 @@ export class FunctionalInput extends PureComponent {
 
     // 详情的显示区域： 内容 + 客服回复
     _displayComponent = () => {
-        // let detailHeight = height - functionalInputAreaFoldHeight - SafeAreaForIphoneX.fetchNavBarHeight() - SafeAreaForIphoneX.fetchSaveAreaHeight();
-        let detailHeight = height - functionalInputAreaFoldHeight;
-        return (
-            <ScrollView style={{width: width, height: detailHeight, backgroundColor: 'gray'}} bounces={true}
-                        onTouchStart={() => {
-                            this.resetPage();
-                        }}
-            >
-                {this.props.wrappedContentCmp}
-            </ScrollView>
-        );
+        let navBarHeight = this.props.navBarHidden === true ? 0 : SafeAreaForIphoneX.fetchNavBarHeight();
+        let detailHeight = height - functionalInputAreaFoldHeight - navBarHeight - SafeAreaForIphoneX.fetchSaveAreaHeight();
+        let scrollable = this.props.contentCmpContainsScrollView;
+        if (scrollable) {
+            return (
+                <View style={{width: width, height: detailHeight}}
+                      onTouchStart={() => this.resetPage()}>
+                    {this.props.wrappedContentCmp}
+                </View>
+            );
+        } else {
+            return (
+                <ScrollView style={{width: width, height: detailHeight}}
+                            onTouchStart={() => this.resetPage()}>
+                    {this.props.wrappedContentCmp}
+                </ScrollView>
+            );
+        }
     };
 
     render() {
