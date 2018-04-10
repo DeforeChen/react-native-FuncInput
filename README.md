@@ -4,14 +4,16 @@ A input component with customized functional area.
 ## Gif
 
 * totally
-    ![A](https://upload-images.jianshu.io/upload_images/1180547-22834594bc9b441c.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/375)
+
+![](https://upload-images.jianshu.io/upload_images/1180547-22834594bc9b441c.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/375)
 
 * height adapter in iOS when using third part keyboard
-    ![C8396876-3C5C-4CA7-9BF9-AD23229E2895-19170-00001705BAD6A310.gif](https://upload-images.jianshu.io/upload_images/1180547-f01d5e49911aa98b.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/335)
+
+![](https://upload-images.jianshu.io/upload_images/1180547-f01d5e49911aa98b.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/335)
 
 * shift between kinds of keyboard
-    ![CD66A319-D1B7-4CED-B1BD-CEFD2994864E-19170-00001742F673E15B.gif](https://upload-images.jianshu.io/upload_images/1180547-66b0dcbaa3b3930c.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/375)
 
+![C](https://upload-images.jianshu.io/upload_images/1180547-66b0dcbaa3b3930c.gif?imageMogr2/auto-orient/strip%7CimageView2/2/w/375)
 
 ## Props
 
