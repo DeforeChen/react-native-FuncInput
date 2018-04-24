@@ -1,5 +1,5 @@
 /**
- * Created by defore on 2018/2/27.
+ * Created by defore on 2018/4/19.
  * @flow
  */
 
@@ -37,9 +37,7 @@ class InnerFunctionalInput extends PureComponent {
         this.keyboardDidHideListener = null;
         this.keyboardWillHideListener = null;
         this.keyboardWillChangeFrameListener = null;
-        // console.log('键盘高度复位');
         this.keyboardhHeight = 0;
-        this.shiftLineOffset = 0;//换行带来的高度变化默认为0
 
         this.needToClearText = false;//该标志位是为了在输入框自动补全情况下做的
         this.needToListenKBFrameChange = true; //是否需要监听键盘宽高变化 —— 键盘消失时常常也会调用 frame 变化的回调
@@ -51,7 +49,6 @@ class InnerFunctionalInput extends PureComponent {
     }
 
     static propTypes = {
-        outsideScrollCallBack: PropTypes.func.isRequired,
         resetWholePage: PropTypes.func.isRequired,
         wrappedFunctionCmp: PropTypes.object.isRequired, // 用于包裹的功能区域的内容
         funcAreaHeight: PropTypes.number.isRequired, //必须告知功能区域的高度
@@ -66,7 +63,7 @@ class InnerFunctionalInput extends PureComponent {
         //监听键盘隐藏事件
         this.keyboardWillHideListener = Keyboard.addListener('keyboardWillHide',
             this._keyboardWillHide.bind(this));
-        this.keyboardWillChangeFrameListener = Keyboard.addListener('keyboardWillChangeFrame',
+        this.keyboardWillChangeFrameListener = Keyboard.addListener('keyboardDidChangeFrame',
             this._keyboardWillChangeFrame.bind(this));
     }
 
@@ -86,7 +83,7 @@ class InnerFunctionalInput extends PureComponent {
     }
 
     _keyboardDidHide = () => {
-        console.log('keyboard didhide');
+        console.log('keyboard hide');
         if (Platform.OS === 'ios') {
             return;
         }
@@ -111,39 +108,24 @@ class InnerFunctionalInput extends PureComponent {
     };
 
     _keyboardWillChangeFrame = (event) => {
-        console.log('========== B ' + this.needToFoldAll + ' ' + this.needToListenKBFrameChange);
-
-        let kbHeight = event.endCoordinates.height - SafeAreaForIphoneX.fetchSaveAreaHeight();
-
-        if (this.needToFoldAll === true || this.needToListenKBFrameChange === false) {
+        debugger
+        // if (this.needToFoldAll === true || this.needToListenKBFrameChange === false) {
+        if (this.needToListenKBFrameChange === false) {
             return;
         }
 
-        console.log('回调告知的键盘高度 = ' + kbHeight + ' -- 当前保存的键盘高度' + this.keyboardhHeight);
-        // if (event.endCoordinates.height !== this.keyboardhHeight) {
-        this.keyboardhHeight = kbHeight;
-        // console.log('========== B-KB-Changed ' + this.keyboardhHeight);
-        needRenderKeyboardArea = true;
-        // }
-
-        this._onFocusInputFrame(needRenderKeyboardArea);
-
-    };
-
-    // 功能区域 layout 的回调，仅针对安卓作处理
-    _functionAreaOnLayout = (e) => {
-        let funcAreaHeight = e.nativeEvent.layout.height;
-        let offsetY = this.functionAreaHeight;
-
-        if (funcAreaHeight === offsetY) {
-            this.props.outsideScrollCallBack(offsetY, this.shiftLineOffset);
+        let needRenderKeyboardArea = false;//true;
+        if (event.endCoordinates.height !== this.keyboardhHeight) {
+            this.keyboardhHeight = event.endCoordinates.height - SafeAreaForIphoneX.fetchSaveAreaHeight();
+            needRenderKeyboardArea = true;
         }
 
+        this._onFocusInputFrame(needRenderKeyboardArea);
+        console.log('change keyboard, height = ' + event.endCoordinates.height);
     };
 
     /*fold event*/
     _onAddAttachment = () => {
-        // console.log('on 功能输入区');
         // layout 完成之后去执行，安卓的 scrollTo 无法越过他的最大 contentSize，
         // 处理见_functionAreaOnLayout
         this.needToListenKBFrameChange = false; // 点击 ➕时，不要去监听 frame 变化
@@ -170,17 +152,14 @@ class InnerFunctionalInput extends PureComponent {
 
         if (needRenderKeyboardArea || this.state.foldStatus !== foldStatus.unfoldWithKeyboard) {
             this.setState({foldStatus: foldStatus.unfoldWithKeyboard});
-            this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset);
         }
     };
 
     fold = () => {
-        // 避免折叠状态和需要变化时引起的误操作
-        if (this.state.foldStatus === foldStatus.fold || this.needToListenKBFrameChange === true) {
+        if (this.state.foldStatus === foldStatus.fold) {
             return;
         }
 
-        console.log('折叠 -- 键盘高度复位');
         this.needToListenKBFrameChange = true;
         this.needToFoldAll = true;
         this.keyboardhHeight = 0;
@@ -190,18 +169,9 @@ class InnerFunctionalInput extends PureComponent {
 
     // textInput 换行时候的监听事件
     _inputChangeSize = (e) => {
-        // console.log('========== C 当前键盘高度' + this.keyboardhHeight);
-        // 键盘没有起来的时候去做下面的判断是没有任何意义的
-        if (this.keyboardhHeight === 0) {
-            return;
-        }
-
-        const height = e.nativeEvent.contentSize.height < sendBtnHeight ? sendBtnHeight : e.nativeEvent.contentSize.height;
-
+        const height = e.nativeEvent.contentSize.height;
         if (height < 5 * sendBtnHeight) {
             this.setState({inputBlankHeight: height});
-            this.shiftLineOffset = height - sendBtnHeight - 0.5 < 0 ? 0 : height - sendBtnHeight - 0.5;//换行带来的偏移
-            this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset);
         }
     };
 
@@ -234,10 +204,12 @@ class InnerFunctionalInput extends PureComponent {
                            source={imageUri.callFuncAreaButton}/>
                 </View>
                 {InputOutlineForAndroid}
-                <TextInput style={[textInputStyle, {height: this.state.inputBlankHeight}]}
+                <TextInput
+                        style={[textInputStyle, {height: this.state.inputBlankHeight}]}
+                           // style={[textInputStyle]}
                            underlineColorAndroid={'transparent'} multiline={true}
-                           onContentSizeChange={this._inputChangeSize}
                            ref={(textInput => this._textInput = textInput)}
+                           onContentSizeChange={this._inputChangeSize}
                            onChangeText={text => {
                                if (this.needToClearText) {
                                    if (text.length > 0) {
@@ -248,8 +220,6 @@ class InnerFunctionalInput extends PureComponent {
                                }
                            }}
                            onFocus={() => {
-                               // console.log('========== A');
-                               // 会比 kb will change frame 后跑
                                this.needToClearText = false;
                                this.needToFoldAllForIOS = true;
                                this.needToListenKBFrameChange = true;
@@ -267,9 +237,6 @@ class InnerFunctionalInput extends PureComponent {
                               this._textInput.clear();
                               this.replyTextContent = '';
                               this.needToClearText = true;
-                              this.keyboardhHeight = 0;
-                              this.shiftLineOffset = 0;
-                              this.setState({inputBlankHeight: sendBtnHeight});
                           }
                       }}>
                     <Text style={styles.sendBtnText}>
@@ -281,11 +248,9 @@ class InnerFunctionalInput extends PureComponent {
     };
 
     _functionalInput_functionArea = () => {
-        // console.log('呼唤功能区~~~~~~~~~~' + this.functionAreaHeight);
         let height = this.state.foldStatus !== foldStatus.unfoldWithAttachment ? 0 : this.functionAreaHeight;
         return (
-            <View style={{width: width, height: height}}
-                  onLayout={this._functionAreaOnLayout}>
+            <View style={{width: width, height: height}}>
                 {this.props.wrappedFunctionCmp}
             </View>
         );
@@ -294,6 +259,7 @@ class InnerFunctionalInput extends PureComponent {
     // 安卓不需要占位区域
     _functionalInput_keyboardOccupyArea = () => {
         if (Platform.OS === 'ios') {
+            debugger
             let height = this.state.foldStatus !== foldStatus.unfoldWithKeyboard ? 0 : this.keyboardhHeight;
             return (<View style={{width: width, height: height, backgroundColor: 'gray',}}/>)
         } else {
@@ -314,10 +280,9 @@ class InnerFunctionalInput extends PureComponent {
     }
 }
 
-export class FunctionalInput extends PureComponent {
+export class NewFunc extends PureComponent {
     constructor(props) {
         super(props);
-        this.scrollHasRestToZero = false;
     }
 
     static propTypes = {
@@ -326,21 +291,19 @@ export class FunctionalInput extends PureComponent {
         navBarHidden: PropTypes.bool.isRequired, // 告知是否有导航条
         wrappedFunctionCmp: PropTypes.object.isRequired, // 用于包裹的功能区域的内容
         sendReplyCallback: PropTypes.func.isRequired, // 用于发送按钮按下
-        funcAreaHeight: PropTypes.number.isRequired,
     };
 
     resetPage = () => {
-        console.log('点击上部，需要隐藏键盘咯 >>>>>>>');
         //在这里执行之后，其实 keyboardwillhide 会产生监听，会再进入一次这里.为了避免循环，加一个判断
-        if (this.scrollHasRestToZero && this._input.keyboardhHeight === 0) {
+        debugger
+        if (this._input.keyboardhHeight === 0) {
             return;
         }
 
         this._input.needToListenKBFrameChange = true;
         this._input.needToFoldAll = true;
-        this._scrollView.scrollTo({y: this._input.shiftLineOffset, animated: true});//默认偏移是0，当输入框有换行时会多加上偏移量
         Keyboard.dismiss();
-        console.log('<<<<<<<< 键盘确实要隐藏了');
+        this._input.fold();
     };
 
     // 详情的显示区域： 内容 + 客服回复
@@ -367,32 +330,13 @@ export class FunctionalInput extends PureComponent {
 
     render() {
         return (
-            <ScrollView style={styles.scrollViewContainer} scrollEnabled={false}
-                        ref={(scrollView => this._scrollView = scrollView)}
-                        scrollEventThrottle={200}
-                        onScroll={(e) => {
-                            // console.log('offset_Y = ' + e.nativeEvent.contentOffset.y);
-                            if (e.nativeEvent.contentOffset.y === 0) {
-                                // console.log('《》《》《》《》《》复位滚动被调用到');
-                                this.scrollHasRestToZero = true;
-                                this._input.fold();
-                            } else {
-                                if (this.scrollHasRestToZero === true) {
-                                    this.scrollHasRestToZero = false;
-                                }
-                            }
-                        }}
-            >
+            <View style={styles.container}>
                 {this._displayComponent()}
                 <InnerFunctionalInput ref={(input => this._input = input)} resetWholePage={this.resetPage}
                                       wrappedFunctionCmp={this.props.wrappedFunctionCmp}
                                       funcAreaHeight={this.props.funcAreaHeight}
-                                      sendReplyCallback={this.props.sendReplyCallback}
-                                      outsideScrollCallBack={(keyboardHeight: number, shiftLineOffset: number) => {
-                                          let offsetY = keyboardHeight + shiftLineOffset;
-                                          this._scrollView.scrollTo({y: offsetY, animated: true});
-                                      }}/>
-            </ScrollView>
+                                      sendReplyCallback={this.props.sendReplyCallback}/>
+            </View>
         );
     }
 }
@@ -407,12 +351,11 @@ const cornerRadius = 4;
 const inputFrameForIOS = {
     borderWidth: 1, borderColor: cmpColor.textInputBorder, borderRadius: cornerRadius,
     backgroundColor: cmpColor.textInputBackground,
-    marginRight: sendBtnOccupyWidth, marginTop: 5, marginBottom: 5,
+    marginRight: sendBtnOccupyWidth,
     minHeight: sendBtnHeight, maxHeight: 5 * sendBtnHeight,
     width: width - sendBtnOccupyWidth - addAttachOccupyWidth,
 };
 const styles = StyleSheet.create({
-    scrollViewContainer: {},
     container: {justifyContent: 'flex-end'},
     // FunctionalInput
     divideLine: {
@@ -420,7 +363,7 @@ const styles = StyleSheet.create({
     },
     inputArea: {
         flexDirection: 'row', alignItems: 'center', backgroundColor: cmpColor.cmpBackground,
-        width,
+        width: width, height: functionalInputAreaFoldHeight - divideLineHeight,
     },
     inputFrameForIOS: inputFrameForIOS,
     inputFrameForAndroid: {

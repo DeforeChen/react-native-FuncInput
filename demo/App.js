@@ -7,13 +7,10 @@
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View, Dimensions} from 'react-native';
 import {FunctionalInput} from './lib/FunctionalInput';
+import testFunc from './lib/testFunc';
+import {NewFunc} from './lib/NewFunc';
 
-const instructions = Platform.select({
-    ios: 'Press Cmd+R to reload,\n' +
-    'Cmd+D or shake for dev menu',
-    android: 'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu'
-});
+
 const {width, height} = Dimensions.get('window');
 
 export default class App extends Component<{}> {
@@ -37,7 +34,7 @@ export default class App extends Component<{}> {
         )
     };
 
-    render() {
+    _cmp = () => {
         return (
             <FunctionalInput wrappedContentCmp={this._contentComponent()} funcAreaHeight={240}
                              wrappedFunctionCmp={this._functionArea()} navBarHidden={true}
@@ -46,7 +43,36 @@ export default class App extends Component<{}> {
                                  console.warn('send button pressed');
                              }}
             />
+        )
+    };
+
+    _newCmp = () => {
+        return (
+            <NewFunc wrappedContentCmp={this._contentComponent()} funcAreaHeight={240}
+                     contentCmpContainsScrollView={false} navBarHidden={true}
+                     wrappedFunctionCmp={this._functionArea()}
+                     sendReplyCallback={() => {
+                         console.warn('new pressed');
+                     }}/>
         );
+    };
+
+    _testCmp = () => {
+        return (
+            <testFunc/>
+        )
+    };
+
+
+    render() {
+        let testCmp = this._testCmp();
+        let cmp = this._cmp();
+        let newCmp = this._newCmp();
+        return (
+            // newCmp
+            cmp
+            // testCmp
+        )
     }
 }
 
