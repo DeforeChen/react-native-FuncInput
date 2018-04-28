@@ -39,7 +39,7 @@ class InnerFunctionalInput extends PureComponent {
         this.keyboardWillChangeFrameListener = null;
         this.keyboardhHeight = 0;
 
-        this.needToClearText = false;//该标志位是为了在输入框自动补全情况下做的
+        this.needRstInputContentAndHeight = false;//该标志位是为了在输入框自动补全情况下做的
         this.needToListenKBFrameChange = true; //是否需要监听键盘宽高变化 —— 键盘消失时常常也会调用 frame 变化的回调
         this.needToFoldAll = Platform.select({ios: false, android: true}); // 是否需要折叠底部所有的区域，包括键盘占用区和功能区
         this.needToFoldAllForIOS = false; // ios 下，当 focus 输入框，第三方输入法含有"🔽按钮隐藏keyboard 时使用"
@@ -211,7 +211,7 @@ class InnerFunctionalInput extends PureComponent {
                            ref={(textInput => this._textInput = textInput)}
                            onContentSizeChange={this._inputChangeSize}
                            onChangeText={text => {
-                               if (this.needToClearText) {
+                               if (this.needRstInputContentAndHeight) {
                                    if (text.length > 0) {
                                        this._textInput.clear();
                                    }
@@ -220,7 +220,7 @@ class InnerFunctionalInput extends PureComponent {
                                }
                            }}
                            onFocus={() => {
-                               this.needToClearText = false;
+                               this.needRstInputContentAndHeight = false;
                                this.needToFoldAllForIOS = true;
                                this.needToListenKBFrameChange = true;
                                this.needToFoldAll = Platform.select({ios: false, android: true});
@@ -236,7 +236,7 @@ class InnerFunctionalInput extends PureComponent {
                           if (this.replyTextContent.length > 0) {
                               this._textInput.clear();
                               this.replyTextContent = '';
-                              this.needToClearText = true;
+                              this.needRstInputContentAndHeight = true;
                           }
                       }}>
                     <Text style={styles.sendBtnText}>

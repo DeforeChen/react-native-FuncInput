@@ -69,9 +69,10 @@ export default class App extends Component<{}> {
         let cmp = this._cmp();
         let newCmp = this._newCmp();
         return (
-            // newCmp
+            // // newCmp
             cmp
-            // testCmp
+            // // testCmp
+            //{/*<View style={{flex:1,backgroundColor:'red'}}/>*/}
         )
     }
 }
