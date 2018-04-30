@@ -91,7 +91,14 @@ class InnerFunctionalInput extends PureComponent {
         if (this.state.inputBlankHeight !== prevState.inputBlankHeight) { //等待输入框高度渲染完毕
             console.log('换行  ' + this.keyboardhHeight + '  ' + this.shiftLineOffset);
             let outsideScrollToEnd = Platform.select({ios: false, android: true});
-            this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
+            if (Platform.OS === 'android') {
+                // 安卓情况下，如果先调用下面这句去执行 scrollToEnd，这时候 scroll 的 contentsize 似乎还未更新，因此要加一个短暂的延时
+                setTimeout(()=>{
+                    this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
+                },100);
+            } else if (Platform.OS === 'ios') {
+                this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
+            }
         }
     }
 
@@ -165,9 +172,9 @@ class InnerFunctionalInput extends PureComponent {
         }
 
 
-        if (Platform.OS === 'ios') {
-            Keyboard.dismiss();
-        }
+        // if (Platform.OS === 'ios') {
+        Keyboard.dismiss();
+        // }
         this.setState({foldStatus: foldStatus.unfoldWithAttachment});
     };
 
@@ -200,7 +207,7 @@ class InnerFunctionalInput extends PureComponent {
         // 控制外部的滚动到0不能与刷新局部的 state 一起做. 会造成有额外偏移.
         this.setState({foldStatus: foldStatus.fold});
         if (this.needRstInputContentAndHeight) { //如果同时需要折叠后将高度也重置，就去重置
-            this.setState({inputBlankHeight:sendBtnHeight});
+            this.setState({inputBlankHeight: sendBtnHeight});
         }
     };
 
