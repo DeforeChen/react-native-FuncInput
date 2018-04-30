@@ -93,9 +93,9 @@ class InnerFunctionalInput extends PureComponent {
             let outsideScrollToEnd = Platform.select({ios: false, android: true});
             if (Platform.OS === 'android') {
                 // 安卓情况下，如果先调用下面这句去执行 scrollToEnd，这时候 scroll 的 contentsize 似乎还未更新，因此要加一个短暂的延时
-                setTimeout(()=>{
+                setTimeout(() => {
                     this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
-                },100);
+                }, 100);
             } else if (Platform.OS === 'ios') {
                 this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
             }
@@ -128,6 +128,16 @@ class InnerFunctionalInput extends PureComponent {
     };
 
     _keyboardWillChangeFrame = (event) => {
+        if (Platform.OS === 'ios') {
+            // ios 下，生命周期有时候会紊乱，Onfocus 比这个键盘 change frame 的回调要先走，
+            // 为了保证正确的生命周期，这里加一个短延时
+            setTimeout(() => this.keyboardWillChangeCallback(event), 50);
+        } else {
+            this.keyboardWillChangeCallback(event);
+        }
+    };
+
+    keyboardWillChangeCallback = (event) => {
         console.log('========== B ' + this.needToFoldAll + ' ' + this.needToListenKBFrameChange);
 
         let kbHeight = event.endCoordinates.height - SafeAreaForIphoneX.fetchSaveAreaHeight();
@@ -144,7 +154,6 @@ class InnerFunctionalInput extends PureComponent {
         // }
 
         this._onFocusInputFrame(needRenderKeyboardArea);
-
     };
 
     // 功能区域 layout 的回调，仅针对安卓作处理
@@ -271,7 +280,7 @@ class InnerFunctionalInput extends PureComponent {
                                }
                            }}
                            onFocus={() => {
-                               // console.log('========== A');
+                               console.log('========== A');
                                // 会比 kb will change frame 后跑
                                this.needRstInputContentAndHeight = false;
                                this.needToFoldAllForIOS = true;
@@ -377,11 +386,13 @@ export class FunctionalInput extends PureComponent {
     };
 
     turnToFoldStateAfterScrollFinished = () => {
-        console.log('状态 ' + this._input.state.foldStatus);
-        if (this._input.state.foldStatus === foldStatus.unfoldWithAttachment || this._input.needRstInputContentAndHeight) {
-            console.log('给我去折叠');
-            this._input.fold();
-        }
+        setTimeout(()=>{
+            console.log('状态 ' + this._input.state.foldStatus);
+            if (this._input.state.foldStatus === foldStatus.unfoldWithAttachment || this._input.needRstInputContentAndHeight) {
+                console.log('给我去折叠');
+                this._input.fold();
+            }
+        },100);
     };
 
     // 详情的显示区域： 内容 + 客服回复
