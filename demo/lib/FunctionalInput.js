@@ -5,7 +5,7 @@
 
 import React, {PureComponent} from 'react';
 import {
-    StyleSheet, Text, View, Image, Dimensions, TextInput, Keyboard, ScrollView, Platform, TouchableOpacity
+    StyleSheet, Text, View, Image, Dimensions, TextInput, Keyboard, ScrollView, Platform, TouchableOpacity, Button
 } from 'react-native';
 
 import PropTypes from 'prop-types';
@@ -41,7 +41,7 @@ class InnerFunctionalInput extends PureComponent {
         this.keyboardhHeight = 0;
         this.shiftLineOffset = 0;//换行带来的高度变化默认为0
 
-        this.needRstInputContentAndHeight = false;//该标志位是为了在输入框自动补全情况下做的
+        // this.needRstInputContentAndHeight = false;//该标志位是为了在输入框自动补全情况下做的
         this.needToListenKBFrameChange = true; //是否需要监听键盘宽高变化 —— 键盘消失时常常也会调用 frame 变化的回调
         this.needToFoldAll = Platform.select({ios: false, android: true}); // 是否需要折叠底部所有的区域，包括键盘占用区和功能区
         this.needToFoldAllForIOS = false; // ios 下，当 focus 输入框，第三方输入法含有"🔽按钮隐藏keyboard 时使用"
@@ -87,18 +87,15 @@ class InnerFunctionalInput extends PureComponent {
 
     componentDidUpdate(prevProps, prevState) {
         console.log('========== 1.4 cmpDidUpdate 先前的BlankHeight ' + prevState.inputBlankHeight + '之后的 height ' + this.state.inputBlankHeight);
-        // debugger
+
         if (this.state.inputBlankHeight !== prevState.inputBlankHeight) { //等待输入框高度渲染完毕
             console.log('换行  ' + this.keyboardhHeight + '  ' + this.shiftLineOffset);
             let outsideScrollToEnd = Platform.select({ios: false, android: true});
-            if (Platform.OS === 'android') {
-                // 安卓情况下，如果先调用下面这句去执行 scrollToEnd，这时候 scroll 的 contentsize 似乎还未更新，因此要加一个短暂的延时
-                setTimeout(() => {
-                    this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
-                }, 100);
-            } else if (Platform.OS === 'ios') {
+
+            //如果先调用下面这句去执行滚动，这时候 scroll 的 contentsize 似乎还未更新，因此要加一个短暂的延时
+            setTimeout(() => {
                 this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset, outsideScrollToEnd);
-            }
+            }, 50);
         }
     }
 
@@ -155,6 +152,10 @@ class InnerFunctionalInput extends PureComponent {
 
     // 功能区域 layout 的回调
     _functionAreaOnLayout = (e) => {
+        if (this.needToListenKBFrameChange) { //没有点击 + 时，不去处理下面的事
+            return;
+        }
+
         console.log('功能区域 Onlayout 回调');
         let funcAreaHeight = e.nativeEvent.layout.height;
         let offsetY = this.functionAreaHeight;
@@ -162,7 +163,6 @@ class InnerFunctionalInput extends PureComponent {
         if (funcAreaHeight === offsetY) {
             this.props.outsideScrollCallBack(offsetY, this.shiftLineOffset);
         }
-
     };
 
     /*fold event*/
@@ -180,10 +180,7 @@ class InnerFunctionalInput extends PureComponent {
 
 
         // if (Platform.OS === 'ios') {
-        Keyboard.dismiss();
-        setTimeout(()=>{
-            Keyboard.dismiss();
-        },100);
+        keyboardDismissEnsure();
         // }
         this.setState({foldStatus: foldStatus.unfoldWithAttachment});
     };
@@ -201,7 +198,7 @@ class InnerFunctionalInput extends PureComponent {
     };
 
     fold = () => {
-        Keyboard.dismiss();
+        keyboardDismissEnsure();
         console.log('⬇⬇⬇⬇⬇⬇⬇⬇ 折叠函数');
         // 避免折叠状态和需要变化时引起的误操作
         if (this.state.foldStatus === foldStatus.fold) {// || this.needToListenKBFrameChange === true) {
@@ -214,9 +211,9 @@ class InnerFunctionalInput extends PureComponent {
         this.keyboardhHeight = 0;
         // 控制外部的滚动到0不能与刷新局部的 state 一起做. 会造成有额外偏移.
         this.setState({foldStatus: foldStatus.fold});
-        if (this.needRstInputContentAndHeight) { //如果同时需要折叠后将高度也重置，就去重置
-            this.setState({inputBlankHeight: sendBtnHeight});
-        }
+        // if (this.needRstInputContentAndHeight) { //如果同时需要折叠后将高度也重置，就去重置
+        //     this.setState({inputBlankHeight: sendBtnHeight});
+        // }
     };
 
     // textInput 换行时候的监听事件
@@ -227,9 +224,19 @@ class InnerFunctionalInput extends PureComponent {
         if (height < 5 * sendBtnHeight) {
             console.log('coning');
             let patchOffset = Platform.select({ios: 5, android: 0});
-            this.setState({inputBlankHeight: height + patchOffset});
             this.shiftLineOffset = height - sendBtnHeight < 0 ? patchOffset : height - sendBtnHeight + patchOffset;//换行带来的偏移
+            this.setState({inputBlankHeight: height + patchOffset});
         }
+    };
+
+    _onPressSendButton = () => {
+        console.log('发送按钮按下_________');
+        this.props.sendReplyCallback(this.replyTextContent);
+        this._textInput.clear();
+        this.replyTextContent = '';
+
+        this.shiftLineOffset = Platform.select({ios: 5, android: 0});// 复位偏移补偿
+        // this.props.resetWholePage();
     };
 
     /*FunctionalInput Inner Components*/
@@ -266,18 +273,14 @@ class InnerFunctionalInput extends PureComponent {
                            onContentSizeChange={this._inputChangeSize}
                            ref={(textInput => this._textInput = textInput)}
                            onChangeText={text => {
-                               if (this.needRstInputContentAndHeight) {
-                                   if (text.length > 0) {
-                                       this._textInput.clear();
-                                   }
-                               } else {
-                                   this.replyTextContent = text;
-                               }
+                               this.replyTextContent = text;
                            }}
+                           // TO DO
+                           // returnKeyType={'send'} blurOnSubmit={true}
+                           // onSubmitEditing={this._onPressSendButton()}
                            onFocus={() => {
                                console.log('========== 1.2 Onfocus');
                                // 会比 kb will change frame 后跑
-                               this.needRstInputContentAndHeight = false;
                                this.needToFoldAllForIOS = true;
                                this.needToListenKBFrameChange = true;
                                this.needToFoldAll = Platform.select({ios: false, android: true});
@@ -285,18 +288,10 @@ class InnerFunctionalInput extends PureComponent {
                                    // 安卓中，当 focus 输入框的时候，不会进入到 keyboardChangeFrame,所以这里要手动做一下
                                    this.setState({foldStatus: foldStatus.fold});
                                }
-                           }}/>
+                           }}
+                />
                 <View style={styles.sendBtn}
-                      onTouchStart={() => {
-                          this.props.sendReplyCallback(this.replyTextContent);
-
-                          this._textInput.clear();
-                          this.replyTextContent = '';
-                          this.needRstInputContentAndHeight = true;
-                          this.keyboardhHeight = 0;
-                          this.shiftLineOffset = 0;
-                          this.props.resetWholePage();
-                      }}>
+                      onTouchStart={this._onPressSendButton}>
                     <Text style={styles.sendBtnText}>
                         Send
                     </Text>
@@ -355,6 +350,7 @@ export class FunctionalInput extends PureComponent {
     };
 
     resetPage = () => {
+        keyboardDismissEnsure();
         //在这里执行之后，其实 keyboardwillhide 会产生监听(安卓不会监听 willhide)，会再进入一次这里.为了避免循环，加一个判断
         if (this.scrollNeedRestToZero && this._input.keyboardhHeight === 0 && Platform.OS === 'ios') {
             return;
@@ -377,7 +373,6 @@ export class FunctionalInput extends PureComponent {
             this.turnToFoldStateAfterScrollFinished();
         }
 
-        Keyboard.dismiss();
         console.log('<<<<<<<< 键盘确实要隐藏了');
     };
 
@@ -385,14 +380,14 @@ export class FunctionalInput extends PureComponent {
         setTimeout(() => {
             console.log('状态 ' + this._input.state.foldStatus);
             // if (this._input.state.foldStatus === foldStatus.unfoldWithAttachment || this._input.needRstInputContentAndHeight) {
-            if (this._input.state.foldStatus !== foldStatus.fold || this._input.needRstInputContentAndHeight) {
+            if (this._input.state.foldStatus !== foldStatus.fold) {
                 console.log('给我去折叠');
                 this._input.fold();
             }
         }, 100);
     };
 
-    // 详情的显示区域： 内容 + 客服回复
+    // 详情的显示区域
     _displayComponent = () => {
         let navHiddenHeight = Platform.select({ios: 0, android: 36});
         let navBarHeight = this.props.navBarHidden === true ? navHiddenHeight : SafeAreaForIphoneX.fetchNavBarHeight();
@@ -422,7 +417,7 @@ export class FunctionalInput extends PureComponent {
         return (
             <ScrollView style={styles.scrollViewContainer} scrollEnabled={false}
                         ref={(scrollView => this._scrollView = scrollView)}
-                        scrollEventThrottle={200}
+                        scrollEventThrottle={200} keyboardShouldPersistTaps={'always'}
                         onMomentumScrollEnd={() => {
                             console.log('滚动结束');
                             if (this.scrollNeedRestToZero && Platform.OS === 'ios') {
@@ -452,11 +447,18 @@ export class FunctionalInput extends PureComponent {
     }
 }
 
+// 为了确保键盘隐藏被调用做的事
+function keyboardDismissEnsure() {
+    Keyboard.dismiss();
+    setTimeout(() => {
+        Keyboard.dismiss();
+    }, 100);
+}
 
 // -------------------- 样式 -----------------------------
 const divideLineHeight = 1;
 const addAttachmentMargin = 6, addAttachOccupyWidth = addAttachBtnSize + 2 * addAttachmentMargin;
-const sendBtnWidth = 58, sendBtnHeight = 32, sendBtnMarginLeft = 8, sendBtnMarginRight = 7;
+const sendBtnWidth = 58, sendBtnHeight = 35, sendBtnMarginLeft = 8, sendBtnMarginRight = 7;
 const sendBtnOccupyWidth = sendBtnWidth + sendBtnMarginLeft + sendBtnMarginRight;
 const cornerRadius = 4;
 const inputFrameForIOS = {
