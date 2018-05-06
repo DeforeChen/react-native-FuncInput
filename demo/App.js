@@ -7,72 +7,66 @@
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View, Dimensions} from 'react-native';
 import {FunctionalInput} from './lib/FunctionalInput';
-import testFunc from './lib/testFunc';
-import {NewFunc} from './lib/NewFunc';
+import FunctionArea from './funcArea';
 
 
 const {width, height} = Dimensions.get('window');
 
 export default class App extends Component<{}> {
+    constructor(props) {
+        super(props);
+        this.state = {
+            messages: ['——— Please input ——']
+        };
+    }
+
     _contentComponent = () => {
+        let msgCmps = [];
+        let index = 0;
+        for (let msg of this.state.messages) {
+            let msgCmp =
+                <View key={index} style={styles.messageCell}>
+                    <Text style={{margin: 5, lineHeight: 18}}>{msg}</Text>
+                </View>;
+            msgCmps.push(msgCmp);
+            index++;
+        }
+
         return (
-            <View style={styles.ContentArea}>
-                <Text>
-                    Test view for Content area
-                </Text>
+            <View style={styles.messageCellContainer}>
+                {msgCmps}
             </View>
         )
     };
 
     _functionArea = () => {
         return (
-            <View style={styles.FunctionalArea}>
-                <Text>
-                    Test view for Functional Area
-                </Text>
-            </View>
+            <FunctionArea/>
         )
     };
 
     _cmp = () => {
         return (
-            <FunctionalInput wrappedContentCmp={this._contentComponent()} funcAreaHeight={240}
+            <FunctionalInput wrappedContentCmp={this._contentComponent()} contentChatMode={true} funcAreaHeight={240}
                              wrappedFunctionCmp={this._functionArea()} navBarHidden={true}
                              contentCmpContainsScrollView={false}
-                             sendReplyCallback={() => {
-                                 console.warn('send button pressed');
+                             sendReplyCallback={(msg) => {
+                                 if (msg) {
+                                     let tempArray = [...this.state.messages];
+                                     tempArray.push(msg);
+                                     this.setState({messages: tempArray});
+                                 } else {
+                                     alert('Content could not be empty!');
+                                 }
                              }}
             />
         )
     };
 
-    _newCmp = () => {
-        return (
-            <NewFunc wrappedContentCmp={this._contentComponent()} funcAreaHeight={240}
-                     contentCmpContainsScrollView={false} navBarHidden={true}
-                     wrappedFunctionCmp={this._functionArea()}
-                     sendReplyCallback={() => {
-                         console.warn('new pressed');
-                     }}/>
-        );
-    };
-
-    _testCmp = () => {
-        return (
-            <testFunc/>
-        )
-    };
-
-
     render() {
-        let testCmp = this._testCmp();
         let cmp = this._cmp();
-        let newCmp = this._newCmp();
         return (
-            // // newCmp
             cmp
-            // // testCmp
-            //{/*<View style={{flex:1,backgroundColor:'red'}}/>*/}
         )
     }
 }
@@ -84,9 +78,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F5FCFF',
     },
-    ContentArea: {
-        width: width, height: 400, backgroundColor: 'yellow',
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
+    messageCell: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'lightblue',
+        margin: 5
+    },
+    messageCellContainer: {
+        alignItems: 'flex-end', justifyContent: 'flex-end',
     },
     FunctionalArea: {
         width: width, height: 240,

@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 
 import PropTypes from 'prop-types';
-import {imageUri} from '../imageManager';
-import {cmpColor} from '../colorManager';
+import {imageUri} from './imageManager';
+import {cmpColor} from './colorManager';
 // 自定义
 import SafeAreaForIphoneX from "../util/SafeAreaForIphoneX";
 
@@ -275,9 +275,9 @@ class InnerFunctionalInput extends PureComponent {
                            onChangeText={text => {
                                this.replyTextContent = text;
                            }}
-                           // TO DO
-                           // returnKeyType={'send'} blurOnSubmit={true}
-                           // onSubmitEditing={this._onPressSendButton()}
+                    // TO DO
+                    // returnKeyType={'send'} blurOnSubmit={true}
+                    // onSubmitEditing={this._onPressSendButton()}
                            onFocus={() => {
                                console.log('========== 1.2 Onfocus');
                                // 会比 kb will change frame 后跑
@@ -315,7 +315,7 @@ class InnerFunctionalInput extends PureComponent {
     _functionalInput_keyboardOccupyArea = () => {
         if (Platform.OS === 'ios') {
             let height = this.state.foldStatus !== foldStatus.unfoldWithKeyboard ? 0 : this.keyboardhHeight;
-            return (<View style={{width: width, height: height, backgroundColor: 'gray',}}/>)
+            return (<View style={{width: width, height: height, backgroundColor: 'rgba(0,0,0,0)'}}/>)
         } else {
             return null;
         }
@@ -328,7 +328,7 @@ class InnerFunctionalInput extends PureComponent {
                 {this._functionalInput_inputArea()}
                 {this._functionalInput_keyboardOccupyArea()}
                 {this._functionalInput_functionArea()}
-                <SafeAreaForIphoneX bgColor={cmpColor.textInputBackground}/>
+                <SafeAreaForIphoneX bgColor={cmpColor.cmpBackground}/>
             </View>
         );
     }
@@ -342,6 +342,7 @@ export class FunctionalInput extends PureComponent {
 
     static propTypes = {
         wrappedContentCmp: PropTypes.object.isRequired, // 用于包裹的显示区域的组件内容
+        contentChatMode: PropTypes.bool.isRequired, // 聊天模式，那么内容区域的消息从底部插入
         contentCmpContainsScrollView: PropTypes.bool.isRequired,// 告知是否内容区域内包含 可滚动的组件
         navBarHidden: PropTypes.bool.isRequired, // 告知是否有导航条
         wrappedFunctionCmp: PropTypes.object.isRequired, // 用于包裹的功能区域的内容
@@ -394,15 +395,17 @@ export class FunctionalInput extends PureComponent {
         let detailHeight = height - functionalInputAreaFoldHeight - navBarHeight - SafeAreaForIphoneX.fetchSaveAreaHeight();
         let scrollable = this.props.contentCmpContainsScrollView;
         if (scrollable) {
+            let chatMode = this.props.contentChatMode === true ? 'flex-end' : 'flex-start';
             return (
-                <View style={{width: width, height: detailHeight}}
+                <View style={{width: width, height: detailHeight, justifyContent: chatMode}}
                       onTouchStart={() => this.resetPage()}>
                     {this.props.wrappedContentCmp}
                 </View>
             );
         } else {
+            let chatMode = this.props.contentChatMode === true ? 'column-reverse' : 'column';
             return (
-                <ScrollView style={{width: width, height: detailHeight}}
+                <ScrollView style={{width: width, height: detailHeight, flexDirection: chatMode}}
                             onTouchStart={() => {
                                 console.log('⬇⬇⬇⬇⬇⬇⬇⬇ press scroll to resetPage');
                                 this.resetPage();
