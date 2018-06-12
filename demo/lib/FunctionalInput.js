@@ -125,16 +125,14 @@ class InnerFunctionalInput extends PureComponent {
         }
     };
 
+    // 只在 ios 下会跑到的回调
     _keyboardWillChangeFrame = (event) => {
-        if (Platform.OS === 'ios') {
-            // ios 下，生命周期有时候会紊乱，Onfocus 比这个键盘 change frame 的回调要先走，
-            // 为了保证正确的生命周期，这里加一个短延时
-            setTimeout(() => this.keyboardWillChangeCallback(event), 50);
-        } else {
-            this.keyboardWillChangeCallback(event);
-        }
+        // ios 下，生命周期有时候会紊乱，Onfocus 比这个键盘 change frame 的回调要先走，
+        // 为了保证正确的生命周期，这里加一个短延时
+        setTimeout(() => this.keyboardWillChangeCallback(event), 50);
     };
 
+    // 只在 ios 下会跑到
     keyboardWillChangeCallback = (event) => {
         console.log('========== 1.3 KB_WillChangeFrame ' + this.needToFoldAll + ' ' + this.needToListenKBFrameChange);
 
@@ -148,6 +146,15 @@ class InnerFunctionalInput extends PureComponent {
         this.keyboardhHeight = kbHeight;
 
         this._onFocusInputFrame();
+    };
+
+    // 只在 ios 下会跑到
+    _onFocusInputFrame = () => {
+        // this.needToListenKBFrameChange = true;
+        // this.needToFoldAll = false;
+
+        this.setState({foldStatus: foldStatus.unfoldWithKeyboard});
+        this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset);
     };
 
     // 功能区域 layout 的回调
@@ -178,23 +185,9 @@ class InnerFunctionalInput extends PureComponent {
             return;
         }
 
-
-        // if (Platform.OS === 'ios') {
         keyboardDismissEnsure();
-        // }
+
         this.setState({foldStatus: foldStatus.unfoldWithAttachment});
-    };
-
-    _onFocusInputFrame = () => {
-        this.needToListenKBFrameChange = true;
-        this.needToFoldAll = Platform.select({ios: false, android: true});//安卓下，标志位设置成 true，因为没有键盘占位区域
-        if (Platform.OS !== 'ios') {
-            // this.setState({foldStatus: foldStatus.unfoldWithKeyboard});
-            return;
-        }
-
-        this.setState({foldStatus: foldStatus.unfoldWithKeyboard});
-        this.props.outsideScrollCallBack(this.keyboardhHeight, this.shiftLineOffset);
     };
 
     fold = () => {
@@ -369,7 +362,7 @@ export class FunctionalInput extends PureComponent {
             this._scrollView.scrollToEnd();
         }
 
-        // 需要等待滚动结束后，再去 setState，否则在 ios 下会有问题
+        // 需要等待滚动结束后，再去 setState，否则在 android 下会有问题.ios 下是滚动结束后直接进入onMomentumScrollEnd 回调
         if (Platform.OS === 'android') {
             this.turnToFoldStateAfterScrollFinished();
         }
