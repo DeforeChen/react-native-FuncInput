@@ -85,12 +85,11 @@ Demo 中做了一个仿微信聊天的页面来说明控件的使用。中间灰
 本控件拿到了的两个接口 `wrappedContentCmp` 和 `wrappedFunctionCmp` 传来的组件内容后，包裹在一个大的`ScrollView`中，当发生换行事件，`state`变换引起的键盘占位区域高度变化时，做对应的高度滚动。
 
 
-## 时序图
-(本人对时序图的使用并不是很熟悉，所以画的谬误之处还请行家里手指出)
+## 流程图
 
-![功能输入 —— 唤起键盘的时序](https://upload-images.jianshu.io/upload_images/1180547-edab9b4d3fd02241.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/700)
+![功能输入——唤起键盘流程.png](https://upload-images.jianshu.io/upload_images/1180547-e565bff47cc3f111.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-![功能输入 —— 键盘消失的时序](https://upload-images.jianshu.io/upload_images/1180547-c3d601d98d52c9a9.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/700)
+![功能输入 —— 键盘消失流程.png](https://upload-images.jianshu.io/upload_images/1180547-b2ed8748c567aeb6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 ## 联系方式
 有任何问题，欢迎添加本人 QQ 250547732
